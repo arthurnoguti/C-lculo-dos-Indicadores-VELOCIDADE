@@ -1,0 +1,228 @@
+---
+title: "Cálculo dos Indicadores"
+author: "Arthur Hideio Noguti"
+date: "`r Sys.Date()`"
+output: 
+  html_document :
+    toc: yes
+    toc_float:
+      collapsed: yes
+---
+# Apresentação  
+Esse arquivo tem por objetivo organizar os cálculos realizados para gerar os indicadores de radares e o indicador de mortalidade.  
+  
+## Indicadores de radares 
+Para os indicadores de radares foi utilizado uma base de dados importado pelo próprio computador (não é uma base aberta ao público) e a base de dados relativo a frota de veículos no Brasil no ano de 2023 (disponível pelo ONSV) .  
+Foi utilizado as bibliotecas:  
+```{r, message=FALSE}
+devtools::install_github("jotasaraiva/fleetbr")
+library(tidyverse)
+library(readxl)
+library(fleetbr)
+```
+E então importado as bases de dados, e feito uma alteração no nome da variável dos dados da frota, para que posteriormente fosse feitos *joins* entre tabelas que possuem uma variável de mesmo nome e valor.
+```{r, message=FALSE}
+radares <- read_xlsx("C:\\Users\\UFPR\\Downloads\\INDICADORES_RADARES_VELOCIDADE_UF (1).xlsx", sheet = 2)
+
+frota_2023_TOTAL <- fleetbr %>% 
+  filter(ano == "2023",
+         mes == "12",
+         modal == "TOTAL")
+
+frota_2023_TOTAL_renomeada <- rename(frota_2023_TOTAL, SiglaUf = uf)
+```
+### Indicador 1  
+O indicador 1 representava \( (\frac{aprovados + reparados}{frota}*10^4) \). Vale ressaltar que é multiplicado por 10^4^ pois estamos analisando a quantidade de radares a cada 10 mil veículos. Segue script abaixo para realizar o cálculo, e os valores do I^1^:
+```{r}
+aprov_repari1 <- radares %>% 
+  filter(UltimoResultado != "Reprovado") %>% 
+  group_by(SiglaUf) %>% 
+  summarise(quantidade = n())
+
+i1 <- right_join(frota_2023_TOTAL_renomeada, aprov_repari1, by = "SiglaUf")
+i1 <- i1 %>% 
+  mutate(i1 = (quantidade/frota)*10^4)
+i1[,c(1,7)]
+```
+### Indicador 2  
+O indicador 2 representava \( (\frac{aprovados + reparados}{frota}*10^4) \) apenas para Vias Urbanas. Segue script abaixo para realizar o cálculo, e os valores do I^2^:
+```{r}
+aprov_repari2 <- radares %>% 
+  filter(UltimoResultado != "Reprovado",
+         Tipo == "Via Urbana") %>% 
+  group_by(SiglaUf) %>% 
+  summarise(quantidade = n())
+
+i2 <- right_join(frota_2023_TOTAL_renomeada, aprov_repari2, by = "SiglaUf")
+i2 <- i2 %>% 
+  mutate(i2 = (quantidade/frota)*10^4)
+i2[,c(1,7)]
+```
+### Indicador 3  
+O indicador 3 representava \( (\frac{aprovados + reparados}{frota}*10^4) \) apenas para Rodovias. Segue script abaixo para realizar o cálculo, e os valores do I^3^:
+```{r}
+aprov_repari3 <- radares %>% 
+  filter(UltimoResultado != "Reprovado",
+         Tipo == "Rodovia") %>% 
+  group_by(SiglaUf) %>% 
+  summarise(quantidade = n())
+
+
+i3 <- right_join(frota_2023_TOTAL_renomeada, aprov_repari3, by = "SiglaUf")
+i3 <- i3 %>% 
+  mutate(i3 = (quantidade/frota)*10^4)
+i3[,c(1,7)]
+```
+
+### Indicador 4  
+O indicador 4 representava \( (\frac{aprovados}{aprovados + reparados}) \) para verificar o desempenho dos radares. Segue script abaixo para realizar o cálculo, e os valores do I^4^:
+```{r}
+aprov <- radares %>% 
+  filter(UltimoResultado == "Aprovado") %>% 
+  group_by(SiglaUf) %>% 
+  summarise(quantidade_aprov = n())
+
+
+i4 <- inner_join(aprov, aprov_repari1, by = "SiglaUf")
+i4 <- i4 %>% 
+  mutate(i4 = quantidade_aprov/quantidade)
+i4[,c(1,4)]
+```
+### Indicador 5  
+O indicador 5 representava \( (\frac{aprovados + reparados}{frota}*10^4) \) apenas levando em consideração vias com limite de velocidade em 40km/h. Segue script abaixo para realizar o cálculo, e os valores do I^5^:
+```{r}
+aprov_repari5 <- radares %>% 
+  filter(UltimoResultado != "Reprovado",
+         VelocidadeNominal == "40") %>% 
+  group_by(SiglaUf) %>% 
+  summarise(quantidade = n())
+
+
+i5 <- right_join(frota_2023_TOTAL_renomeada, aprov_repari5, by = "SiglaUf")
+i5 <- i5 %>% 
+  mutate(i5 = (quantidade/frota)*10^4)
+i5[,c(1,7)]
+```
+### Indicador 6  
+O indicador 6 representava \( (\frac{aprovados + reparados}{frota}*10^4) \) apenas levando em consideração vias com limite de velocidade em 50km/h. Segue script abaixo para realizar o cálculo, e os valores do I^6^:
+```{r}
+aprov_repari6 <- radares %>% 
+  filter(UltimoResultado != "Reprovado",
+         VelocidadeNominal == "50") %>% 
+  group_by(SiglaUf) %>% 
+  summarise(quantidade = n())
+
+
+i6 <- right_join(frota_2023_TOTAL_renomeada, aprov_repari6, by = "SiglaUf")
+i6 <- i6 %>% 
+  mutate(i6 = (quantidade/frota)*10^4)
+i6[,c(1,7)]
+```
+
+### Indicador 7  
+O indicador 7 representava \( (\frac{aprovados + reparados}{frota}*10^4) \) apenas levando em consideração vias com limite de velocidade em 60km/h. Segue script abaixo para realizar o cálculo, e os valores do I^7^:
+```{r}
+aprov_repari7 <- radares %>% 
+  filter(UltimoResultado != "Reprovado",
+         VelocidadeNominal == "60") %>% 
+  group_by(SiglaUf) %>% 
+  summarise(quantidade = n())
+
+
+i7 <- right_join(frota_2023_TOTAL_renomeada, aprov_repari7, by = "SiglaUf")
+i7 <- i7 %>% 
+  mutate(i7 = (quantidade/frota)*10^4)
+i7[,c(1,7)]
+```
+
+### Indicador 8  
+O indicador 8 representava \( (\frac{aprovados + reparados}{frota}*10^4) \) apenas levando em consideração vias com limite de velocidade em 70km/h. Segue script abaixo para realizar o cálculo, e os valores do I^8^:
+```{r}
+aprov_repari8 <- radares %>% 
+  filter(UltimoResultado != "Reprovado",
+         VelocidadeNominal == "70") %>% 
+  group_by(SiglaUf) %>% 
+  summarise(quantidade = n())
+
+
+i8 <- right_join(frota_2023_TOTAL_renomeada, aprov_repari8, by = "SiglaUf")
+i8 <- i8 %>% 
+  mutate(i8 = (quantidade/frota)*10^4)
+i8[,c(1,7)]
+```
+
+### Indicador 9  
+O indicador 9 representava \( (\frac{aprovados + reparados}{frota}*10^4) \) apenas levando em consideração vias com limite de velocidade maior ou igual a 80km/h. Segue script abaixo para realizar o cálculo, e os valores do I^9^:
+```{r}
+aprov_repari9 <- radares %>% 
+  filter(UltimoResultado != "Reprovado",
+         VelocidadeNominal >= 80) %>% 
+  group_by(SiglaUf) %>% 
+  summarise(quantidade = n())
+
+
+i9 <- right_join(frota_2023_TOTAL_renomeada, aprov_repari9, by = "SiglaUf")
+i9 <- i9 %>% 
+  mutate(i9 = (quantidade/frota)*10^4)
+i9[,c(1,7)]
+```
+## Indicador da mortalidade  
+Para esse indicador foi utilizado as seguintes bibliotecas: 
+```{r, message=FALSE}
+library(devtools)
+library(tidyverse)
+devtools::install_github("pabsantos/roadtrafficdeaths")
+devtools::install_github("jotasaraiva/fleetbr")
+library(roadtrafficdeaths)
+library(fleetbr)
+``` 
+Note que as duas bases de dados que vamos utilizar nesse indicador estão disponíveis para instalar pelo ONSV. 
+Na base do DataSUS sobre a mortalidade, foi feito um filtro para selecionar apenas o ano de 2022 e agrupado os dados em relação a Unidade de Federação. Foi também feito uma coluna nova com as siglas das Unidades para que posterior seja utilizado a função *join*. 
+```{r}
+mortes_2022 <- rtdeaths %>% 
+  filter(ano_ocorrencia == "2022")
+
+mortes_2022_porUF <- mortes_2022 %>% 
+  group_by(nome_uf_ocor) %>% 
+  summarise(Quantidade_de_obitos = n())
+
+mortes_2022_porUF <- na.omit(mortes_2022_porUF)
+
+mortes_2022_porUF <- mortes_2022_porUF %>% 
+  mutate(uf = c("AC", "AL", "AP", "AM", "BA",
+                "CE", "DF", "ES", "GO", "MA",
+                "MT", "MS", "MG", "PR", "PB",
+                "PA", "PE", "PI", "RN", "RS",
+                "RJ", "RO", "RR", "SC", "SE", 
+                "SP", "TO"))
+```
+E então foi filtrado a base da frota para o ano de 2022, feito a junção das bases, e calculado o indicador, resultando na seguinte *tibble*:
+```{r}
+frota_2022_TOTAL <- fleetbr %>% 
+  filter(ano == "2022",
+         mes == "12",
+         modal == "TOTAL")
+
+Indicador_mortal <- (full_join(mortes_2022_porUF, frota_2022_TOTAL, by = "uf" ))
+
+Indicador_mortal <- Indicador_mortal %>% 
+  mutate(Inicador = (Quantidade_de_obitos/frota)*(10^4))
+
+Indicador_mortal
+```
+Sendo o que nos interessa:
+```{r}
+Indicador_mortal[,c(1,8)]
+```
+
+
+
+
+
+
+
+
+
+
+
+
